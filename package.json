@@ -1,0 +1,22 @@
+{
+  "name": "google-scraper",
+  "version": "0.0.1",
+  "description": "Google scraper based on PhantomJS",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "keywords": [
+    "google",
+    "scraper",
+    "search",
+    "engine"
+  ],
+  "author": "Majewan Interactive",
+  "license": "BSD-2-Clause",
+  "dependencies": {
+    "spooky": "~0.2.5",
+    "casperjs": "~1.1.2",
+    "phantomjs-prebuilt": "~2.1.7"
+  }
+}
