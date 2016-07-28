@@ -1,26 +1,30 @@
 var Spooky = require('spooky');
 var fs = require('fs');
+var _ = require('lodash');
+var debug = require('debug')('node-google-scraper');
 
-process.env.PHANTOMJS_EXECUTABLE = "node_modules/phantomjs-prebuilt/bin/phantomjs";
+process.env.PHANTOMJS_EXECUTABLE = __dirname + "/node_modules/phantomjs-prebuilt/bin/phantomjs";
 
 function search(options, callback){
-  options.host = options.host || 'www.google.com';
-  options.userAgent = options.userAgent || 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/49.0.2623.108 Chrome/49.0.2623.108 Safari/537.36';
-  options.limit = options.limit || 1000;
-  options.keepPages = options.keepPages || false;
+  _.defaultsDeep(options, {
+    host: 'www.google.com',
+    userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/49.0.2623.108 Chrome/49.0.2623.108 Safari/537.36',
+    limit: 1000,
+    keepPages: false,
+    spooky: {
+      child: {
+        command: __dirname + '/node_modules/casperjs/bin/casperjs'
+      },
+      casper: {
+        logLevel: 'debug',
+        verbose: true
+      }
+  }});
   var output = {
     urls: [],
     pages: []
   };
-  var spooky = new Spooky({
-    child: {
-      command: 'node_modules/casperjs/bin/casperjs'
-    },
-    casper: {
-      logLevel: 'debug',
-      verbose: true
-    }
-  }, function (err) {
+  var spooky = new Spooky(options.spooky, function (err) {
     if (err) {
       throw err;
     }
@@ -61,15 +65,11 @@ function search(options, callback){
     spooky.run();
   });
 
-  spooky.on('error', function (err, stack) {
+  spooky.on('error', function (err){
     console.error(err);
-    process.nextTick(function(){
-      callback(err);
-    });
   });
 
   spooky.on('extractContent', function (content) {
-    console.log(output.urls.length);
     output.urls = output.urls.concat(content.urls);
     if(options.keepPages){
       output.pages.push(content.html);
@@ -80,20 +80,18 @@ function search(options, callback){
     process.nextTick(function(){
       callback(null, output);
     });
-    spooky.destroy();
+    spooky.exit();
   });
 
   spooky.on('log', function (log) {
     if (log.space === 'remote') {
-      console.log(log.message);
+      debug(log.message);
     }
   });
 
   spooky.on('url.changed',function(url) {
-    console.log(url);
+    debug('Url change to %s', url);
   });
-
-
 
 }
 

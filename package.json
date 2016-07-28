@@ -17,6 +17,8 @@
   "dependencies": {
     "spooky": "~0.2.5",
     "casperjs": "~1.1.2",
-    "phantomjs-prebuilt": "~2.1.7"
+    "phantomjs-prebuilt": "~2.1.7",
+    "lodash": "~4.14.0",
+    "debug": "~2.2.0"
   }
 }
