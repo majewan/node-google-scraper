@@ -15,7 +15,7 @@
   "author": "Majewan Interactive",
   "license": "GPL-v3",
   "dependencies": {
-    "spooky": "~0.2.5",
+    "spooky": "git+https://github.com/majewan/SpookyJS.git",
     "casperjs": "~1.1.2",
     "phantomjs-prebuilt": "~2.1.7",
     "lodash": "~4.14.0",

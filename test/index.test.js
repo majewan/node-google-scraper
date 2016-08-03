@@ -9,7 +9,7 @@ describe('GoogleSearchScraper', function() {
       this.timeout(30000);
       GoogleSearchScraper.search({ query : 'site:nodejs.org' }, function(err, result){
         if(err){
-          throw err;
+          return done(err);
         }
         assert.notEqual(result.urls.length, 0, 'Request site:nodejs.org can\'t have 0 results.');
         if(result.urls.length < 100){
@@ -23,7 +23,7 @@ describe('GoogleSearchScraper', function() {
       this.timeout(5000);
       GoogleSearchScraper.search({ query : 'site:wikipedia.fr', limit: 20 }, function(err, result){
         if(err){
-          throw err;
+          return done(err);
         }
         assert.strictEqual(result.urls.length, 20, 'Must be equal to 20 results.');
         done();
@@ -38,7 +38,7 @@ describe('GoogleSearchScraper', function() {
       this.timeout(5000);
       GoogleSearchScraper.search({ query : 'site:nodejs.org', limit: 10 }, function(err, result){
         if(err){
-          throw err;
+          return done(err);
         }
         assert.strictEqual(result.pages.length, 0, 'Scraper should not return a page.');
         assert.notEqual(result.urls.length, 0, 'Request site:nodejs.org can\'t have 0 results.');
@@ -53,7 +53,7 @@ describe('GoogleSearchScraper', function() {
       this.timeout(5000);
       GoogleSearchScraper.search({ query : 'site:nodejs.org', limit: 10, keepPages: true }, function(err, result){
         if(err){
-          throw err;
+          return done(err);
         }
         assert.strictEqual(result.pages.length, 1, 'Scraper should return a page.');
         assert.notEqual(result.urls.length, 0, 'Request site:nodejs.org can\'t have 0 results.');
@@ -64,6 +64,37 @@ describe('GoogleSearchScraper', function() {
       });
     });
 
+  });
+
+  describe('Spooky proxy option', function() {
+
+    it('With proxy option', function(done){
+      this.timeout(20000);
+      GoogleSearchScraper.search({ query : 'site:nodejs.org',
+      limit: 10,
+      keepPages: true,
+      solver: GoogleSearchScraper.commandLineSolver,
+      headers: {
+        'Accept-Language': 'ru-RU,en,*'
+      },
+      spooky: {
+        child: {
+          proxy: 'localhost:9050',
+          'proxy-type': 'socks5'
+          //'ignore-ssl-errors': 'yes'
+        }
+      }}, function(err, result){
+        if(err){
+          return done(err);
+        }
+        assert.strictEqual(result.pages.length, 1, 'Scraper should return a page.');
+        assert.notEqual(result.urls.length, 0, 'Request site:nodejs.org can\'t have 0 results.');
+        if(result.urls.length < 10){
+          assert.fail(result.urls.length, 10, 'Request site:nodejs.org can\'t have less than 10 results.');
+        }
+        done();
+      });
+    });
   });
 
 });
