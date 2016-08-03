@@ -44,8 +44,7 @@ function search(options, callback){
       this.sendKeys('form[action="/search"] input[name="q"]', search);
       this.sendKeys('form[action="/search"] input[name="q"]', this.page.event.key.Enter);
     }], function(){
-      this.emit('done', {err: 'connection_timeout', message: 'Failed to reach google host.'});
-      this.exit();
+      this.emit('done', { message: 'connection_timeout', details: 'Failed to reach google host.' });
     }, 15000);
 
     function waitForResult(){
@@ -68,18 +67,15 @@ function search(options, callback){
             casper.waitForSelectorTextChange('#resultStats', scrapeResults);
           }else{
             casper.emit('done');
-            casper.exit();
           }
         }
         scrapeResults();
       }], function(){
 
         if(!/\/sorry/.test(this.getCurrentUrl())){
-          this.emit('done', {err: 'results_timeout', message: 'End on url : ' + this.getCurrentUrl() });
-          this.exit();
+          this.emit('done', { message: 'results_timeout', details: 'End on url : ' + this.getCurrentUrl() });
         }else if(!!this.__gs__captchaSolution.solution){
-          this.emit('done', {err: 'invalid_captcha', captcha: this.__gs__captchaSolution});
-          this.exit();
+          this.emit('done', { message: 'invalid_captcha', details: { captcha: this.__gs__captchaSolution }});
         }
       }, 5000);
     };
@@ -100,8 +96,7 @@ function search(options, callback){
           'input[name=captcha]': this.__gs__captchaSolution.solution
         }, true);
       }, function(){
-        this.emit('done', {err: 'captcha_timeout'});
-        this.exit();
+        this.emit('done', { message: 'captcha_timeout'});
       }, 120000);
 
     waitForResult();
@@ -121,11 +116,19 @@ function search(options, callback){
   });
 
   spooky.on('done', function(error){
-    if(error && error.err === 'invalid_captcha' && options.solver && options.solver.report){
-      options.solver.report(captcha.id, error);
+    spooky.evaluateInCasper(function(){
+      this.exit();
+    });
+    if(error && error.message === 'invalid_captcha' && options.solver && options.solver.report){
+      options.solver.report(error.details.captcha.id, error);
     }
     process.nextTick(function(){
-      callback(error, output);
+      var err = error;
+      if(error && !(error instanceof Error)){
+        err = new Error(error.message);
+        err.details = error.details;
+      }
+      callback(err, output);
     });
   });
 
@@ -138,8 +141,7 @@ function search(options, callback){
     if(options.solver){
       options.solver.solve( new Buffer(img, 'base64'), function(err, id, solution){
         if(err){
-          callback(err, output);
-          return spooky.destroy();
+          return spooky.emit('done', err);
         }
         spooky.evaluateInCasper([{ solutionData: { id: id, solution: solution }}, function(){
           this.__gs__captchaSolution = solutionData;
@@ -147,10 +149,7 @@ function search(options, callback){
       });
     }else{
       debug('Detect a captcha, need a solver to continue.');
-      process.nextTick(function(){
-        callback(null, output);
-      });
-      spooky.destroy();
+      spooky.emit('done', new Error('captcha_solver_needed'));
     }
   });
 
