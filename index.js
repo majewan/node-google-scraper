@@ -11,6 +11,12 @@ function search(options, callback){
     userAgent: 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36',
     limit: 1000,
     keepPages: false,
+    timeout: {
+      waitSearchForm: 15000,
+      captcha: 120000,
+      resultBefore: 20000,
+      resultAfter: 20000
+    },
     spooky: {
       child: {
         command: __dirname + '/node_modules/casperjs/bin/casperjs',
@@ -45,9 +51,10 @@ function search(options, callback){
       this.sendKeys('form[action="/search"] input[name="q"]', this.page.event.key.Enter);
     }], function(){
       this.emit('done', { message: 'connection_timeout', details: 'Failed to reach google host.' });
-    }, 15000);
+    }, options.timeout.waitSearchForm);
 
-    function waitForResult(){
+    function waitForResult(timeout){
+      // TODO : change this waitFor with captcha redirect detection
       spooky.waitForSelector('#res #ires h3', [{
         options: options
       }, function(){
@@ -77,29 +84,32 @@ function search(options, callback){
         }else if(!!this.__gs__captchaSolution.solution){
           this.emit('done', { message: 'invalid_captcha', details: { captcha: this.__gs__captchaSolution }});
         }
-      }, 5000);
+      }, timeout);
     };
 
-    waitForResult();
+    waitForResult(options.timeout.resultBefore);
 
     spooky.then(function(){
       if(/\/sorry/.test(this.getCurrentUrl())){
-        this.solution = null;
         this.emit('captcha', this.captureBase64('jpg', 'img'));
+      }else{
+        this.__gs__captchaSolution.continue = true;
       }
     });
 
     spooky.waitFor(function waitSolution(){
-        return !!this.__gs__captchaSolution.solution;
+        return !!this.__gs__captchaSolution.solution || this.__gs__captchaSolution.continue;
       }, function then(){
-        this.fillSelectors('form', {
-          'input[name=captcha]': this.__gs__captchaSolution.solution
-        }, true);
+        if(this.__gs__captchaSolution.solution){
+          this.fillSelectors('form', {
+            'input[name=captcha]': this.__gs__captchaSolution.solution
+          }, true);
+        }
       }, function(){
         this.emit('done', { message: 'captcha_timeout'});
       }, 120000);
 
-    waitForResult();
+    waitForResult(options.timeout.resultAfter);
 
     spooky.run();
   });

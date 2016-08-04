@@ -1,6 +1,6 @@
 {
   "name": "google-scraper",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Google scraper based on SpookyJS, CasperJS, PhantomJS",
   "main": "index.js",
   "scripts": {
