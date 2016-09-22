@@ -20,7 +20,7 @@ describe('GoogleSearchScraper', function() {
     });
 
     it('With 20 limit results', function(done){
-      this.timeout(5000);
+      this.timeout(10000);
       GoogleSearchScraper.search({ query : 'site:wikipedia.fr', limit: 20 }, function(err, result){
         if(err){
           return done(err);
@@ -35,7 +35,7 @@ describe('GoogleSearchScraper', function() {
   describe('OptionKeepPages', function() {
 
     it('Without keepPages', function(done){
-      this.timeout(5000);
+      this.timeout(10000);
       GoogleSearchScraper.search({ query : 'site:nodejs.org', limit: 10 }, function(err, result){
         if(err){
           return done(err);
@@ -50,7 +50,7 @@ describe('GoogleSearchScraper', function() {
     });
 
     it('With keepPages', function(done){
-      this.timeout(5000);
+      this.timeout(10000);
       GoogleSearchScraper.search({ query : 'site:nodejs.org', limit: 10, keepPages: true }, function(err, result){
         if(err){
           return done(err);

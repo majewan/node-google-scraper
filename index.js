@@ -39,9 +39,11 @@ function search(options, callback){
 
     spooky.start();
     spooky.userAgent(options.userAgent);
-    spooky.then([{ headers: options.headers }, function(){
-      this.page.customHeaders = headers;
-    }]);
+    if(options.headers){
+      spooky.then([{ headers: options.headers }, function(){
+        this.page.customHeaders = headers;
+      }]);
+    }
     spooky.thenOpen('https://' + options.host);
     spooky.waitForSelector('form[action="/search"] input[name="q"]', [{
       search: options.query
@@ -91,7 +93,11 @@ function search(options, callback){
 
     spooky.then(function(){
       if(/\/sorry/.test(this.getCurrentUrl())){
-        this.emit('captcha', this.captureBase64('jpg', 'img'));
+        try{
+          this.emit('captcha', this.captureBase64('jpg', 'img'));
+        }catch(err){
+          this.emit('done', { message: 'captcha_timeout', details: 'End on url : ' + this.getCurrentUrl() });
+        }
       }else{
         this.__gs__captchaSolution.continue = true;
       }
