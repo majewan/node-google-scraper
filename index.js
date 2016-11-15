@@ -1,4 +1,4 @@
-var Spooky = require('spooky');
+var phantom = require('phantom');
 var fs = require('fs');
 var _ = require('lodash');
 var debug = require('debug')('node-google-scraper');
