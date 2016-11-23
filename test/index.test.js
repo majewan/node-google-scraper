@@ -60,6 +60,7 @@ describe('GoogleSearchScraper', function() {
         if(result.urls.length < 10){
           assert.fail(result.urls.length, 10, 'Request site:nodejs.org can\'t have less than 10 results.');
         }
+        //require('fs').writeFileSync('outputpage.html', result.pages[0]);
         done();
       });
     });
@@ -69,22 +70,20 @@ describe('GoogleSearchScraper', function() {
   describe('Spooky proxy option', function() {
 
     it('With proxy option', function(done){
-      this.timeout(20000);
-      GoogleSearchScraper.search({ query : 'site:nodejs.org',
+      this.timeout(300000);
+      GoogleSearchScraper.search({ query : 'site:test.com',
       limit: 10,
       keepPages: true,
       solver: GoogleSearchScraper.commandLineSolver,
       headers: {
         'Accept-Language': 'ru-RU,en,*'
       },
-      spooky: {
-        child: {
-          proxy: 'localhost:9050',
-          'proxy-type': 'socks5'
-          //'ignore-ssl-errors': 'yes'
-        }
-      }}, function(err, result){
+      phantomOptions: [
+        '--proxy-type=socks5',
+        '--proxy=localhost:9050'
+      ]}, function(err, result){
         if(err){
+          if(err.details) require('fs').writeFileSync('error.html', err.details.html);
           return done(err);
         }
         assert.strictEqual(result.pages.length, 1, 'Scraper should return a page.');

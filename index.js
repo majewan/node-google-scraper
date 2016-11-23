@@ -1,9 +1,8 @@
 var phantom = require('phantom');
 var fs = require('fs');
 var _ = require('lodash');
+var Promise = require('bluebird');
 var debug = require('debug')('node-google-scraper');
-
-process.env.PHANTOMJS_EXECUTABLE = __dirname + "/node_modules/phantomjs-prebuilt/bin/phantomjs";
 
 function search(options, callback){
   _.defaultsDeep(options, {
@@ -12,163 +11,208 @@ function search(options, callback){
     limit: 1000,
     keepPages: false,
     timeout: {
-      waitSearchForm: 15000,
+      waitSearchForm: 30000,
       captcha: 120000,
-      resultBefore: 20000,
-      resultAfter: 20000
-    },
-    spooky: {
-      child: {
-        command: __dirname + '/node_modules/casperjs/bin/casperjs',
-        transport: 'http'
-      },
-      casper: {
-        logLevel: 'debug',
-        verbose: true
-      }
-  }});
+      getResults: 10000
+    }
+  });
+  if(options.solver) Promise.promisifyAll(options.solver);
   var output = {
     urls: [],
     pages: []
   };
-  var captchaSolution = {};
-  var spooky = new Spooky(options.spooky, function (err) {
-    if (err) {
-      throw err;
-    }
 
-    spooky.start();
-    spooky.userAgent(options.userAgent);
-    if(options.headers){
-      spooky.then([{ headers: options.headers }, function(){
-        this.page.customHeaders = headers;
-      }]);
-    }
-    spooky.thenOpen('https://' + options.host);
-    spooky.waitForSelector('form[action="/search"] input[name="q"]', [{
-      search: options.query
-    }, function(){
-      this.__gs__captchaSolution = {};
-      this.sendKeys('form[action="/search"] input[name="q"]', search);
-      this.sendKeys('form[action="/search"] input[name="q"]', this.page.event.key.Enter);
-    }], function(){
-      this.emit('done', { message: 'connection_timeout', details: 'Failed to reach google host.' });
-    }, options.timeout.waitSearchForm);
-
-    function waitForResult(timeout){
-      // TODO : change this waitFor with captcha redirect detection
-      spooky.waitForSelector('#res #ires h3', [{
-        options: options
-      }, function(){
-        var casper = this;
-        var resultsCount = 0;
-        function scrapeResults(){
-          var links = casper.evaluate(function getLinks() {
-              var links = document.querySelectorAll('.g h3 a');
-              return Array.prototype.map.call(links, function(e) {
-                  return e.getAttribute('href');
-              });
-            });
-          resultsCount += links.length;
-          casper.emit('extractContent', { html: (options.keepPages) ? casper.getHTML() : null, urls: links });
-          if(casper.exists('#pnnext') && options.limit > resultsCount){
-            casper.click('#pnnext');
-            casper.waitForSelectorTextChange('#resultStats', scrapeResults);
-          }else{
-            casper.emit('done');
-          }
-        }
-        scrapeResults();
-      }], function(){
-
-        if(!/\/sorry/.test(this.getCurrentUrl())){
-          this.emit('done', { message: 'results_timeout', details: 'End on url : ' + this.getCurrentUrl() });
-        }else if(!!this.__gs__captchaSolution.solution){
-          this.emit('done', { message: 'invalid_captcha', details: { captcha: this.__gs__captchaSolution }});
-        }
-      }, timeout);
-    };
-
-    waitForResult(options.timeout.resultBefore);
-
-    spooky.then(function(){
-      if(/\/sorry/.test(this.getCurrentUrl())){
-        try{
-          this.emit('captcha', this.captureBase64('jpg', 'img'));
-        }catch(err){
-          this.emit('done', { message: 'captcha_timeout', details: 'End on url : ' + this.getCurrentUrl() });
-        }
-      }else{
-        this.__gs__captchaSolution.continue = true;
-      }
-    });
-
-    spooky.waitFor(function waitSolution(){
-        return !!this.__gs__captchaSolution.solution || this.__gs__captchaSolution.continue;
-      }, function then(){
-        if(this.__gs__captchaSolution.solution){
-          this.fillSelectors('form', {
-            'input[name=captcha]': this.__gs__captchaSolution.solution
-          }, true);
-        }
-      }, function(){
-        this.emit('done', { message: 'captcha_timeout'});
-      }, 120000);
-
-    waitForResult(options.timeout.resultAfter);
-
-    spooky.run();
-  });
-
-  spooky.on('error', function (err){
-    debug(err);
-  });
-
-  spooky.on('extractContent', function (content) {
-    output.urls = output.urls.concat(content.urls);
-    if(options.keepPages){
-      output.pages.push(content.html);
-    }
-  });
-
-  spooky.on('done', function(error){
-    spooky.evaluateInCasper(function(){
-      this.exit();
-    });
-    if(error && error.message === 'invalid_captcha' && options.solver && options.solver.report){
-      options.solver.report(error.details.captcha.id, error);
-    }
-    process.nextTick(function(){
-      var err = error;
-      if(error && !(error instanceof Error)){
-        err = new Error(error.message);
-        err.details = error.details;
-      }
-      callback(err, output);
-    });
-  });
-
-  var debugP = require('debug')('phantomjs');
-  spooky.on('log', function (log) {
-      debugP(log.message);
-  });
-
-  spooky.on('captcha', function(img){
-    if(options.solver){
-      options.solver.solve( new Buffer(img, 'base64'), function(err, id, solution){
-        if(err){
-          return spooky.emit('done', err);
-        }
-        spooky.evaluateInCasper([{ solutionData: { id: id, solution: solution }}, function(){
-          this.__gs__captchaSolution = solutionData;
-        }]);
-      });
+  function handleErrorFromCasper(casperReturns){
+    if(casperReturns && casperReturns.err){
+      var error = new Error(casperReturns.err.message);
+      error.details = casperReturns.err.details;
+      throw error;
     }else{
-      debug('Detect a captcha, need a solver to continue.');
-      spooky.emit('done', new Error('captcha_solver_needed'));
+      return casperReturns;
     }
-  });
+  }
 
+  function catchCaptcha(retryCall){
+    return function(err){
+      if(err.message === 'captcha_detected' && options.solver){
+        return page.invokeAsyncMethod('getCaptchaImg').then(handleErrorFromCasper)
+        .then(function(casperReturns){
+          return options.solver.solveAsync(new Buffer(casperReturns.captcha, 'base64'));
+        })
+        .then(function(solution){
+          // TODO solver return other info than solution
+          sharedContext.captcha = solution;
+          return page.invokeAsyncMethod('fillCaptchaSolution', solution).then(handleErrorFromCasper);
+        })
+        .then(retryCall);
+      }else{
+        throw err;
+      }
+    };
+  }
+
+  // TODO refactor captcha (maybe remove from sharedContext)
+  var sharedContext = { resultsCount: 0, endOfResults: false, captcha: null };
+
+  var phInstance, page;
+  phantom.create(options.phantomOptions, {
+    logLevel: 'info'
+  })
+  .then(function(instance){
+    phInstance = instance;
+    return instance.createPage();
+  })
+  .then(function(_page){
+    page = _page;
+    page.defineMethod('setupCasper', function(options, callback){
+      var lastError;
+      phantom.casperPath = './node_modules/casperjs';
+      phantom.injectJs(phantom.casperPath + '/bin/bootstrap.js');
+      var casper = require('casper').create();
+      objectSpace.casper = casper;
+      casper.start();
+      casper.userAgent(options.userAgent);
+      casper.then(function(){
+        if(options.headers){
+          this.page.customHeaders = options.headers;
+        }
+        console.log('Setup casper done, open https://' + options.host);
+      });
+      casper.thenOpen('https://' + options.host);
+      casper.run(function(){
+        console.log('Casper loaded ' + this.getCurrentUrl());
+        if(/\/sorry/.test(this.getCurrentUrl())){
+          lastError = { message: 'captcha_detected' };
+        }
+        callback({ err: lastError });
+      });
+    });
+
+    page.defineMethod('searchGoogle', function(options, sharedContext, callback){
+      var casper = objectSpace.casper, lastError;
+      console.log('Start wait Google form to be ready');
+      casper.waitForSelector('form[action="/search"] input[name="q"]', function(){
+        console.log('Send query ' + options.query + ' to Google.');
+        this.sendKeys('form[action="/search"] input[name="q"]', options.query);
+        this.sendKeys('form[action="/search"] input[name="q"]', this.page.event.key.Enter);
+      }, function(){
+        if(!/\/sorry/.test(this.getCurrentUrl())){
+          lastError = { message: 'form_not_found', details: { url: this.getCurrentUrl(), html: this.getHTML() } };
+        }else if(!!sharedContext.captcha){
+          // TODO add captcha to sharedContext
+          lastError = { message: 'invalid_captcha', details: { captcha: sharedContext.captcha }};
+        }else{
+          lastError = { message: 'captcha_detected' };
+        }
+      }, options.timeout.waitSearchForm);
+      casper.run(function(){
+        console.log('Query sended get ' + this.getCurrentUrl());
+        callback({ err: lastError });
+      });
+    });
+
+    page.defineMethod('scrapeResults', function(options, sharedContext, callback){
+      var casper = objectSpace.casper, lastError, output;
+      // TODO : change this waitFor selector or redirect
+      casper.waitForSelector('#res #ires h3', function(){
+        console.log('Parsing results.');
+        var links = this.evaluate(function getLinks() {
+          var links = document.querySelectorAll('.g h3 a');
+          return Array.prototype.map.call(links, function(e) {
+              return e.getAttribute('href');
+          });
+        });
+        sharedContext.resultsCount += links.length;
+        output = { html: (options.keepPages) ? this.getHTML() : null, urls: links };
+        if(this.exists('#pnnext') && options.limit > sharedContext.resultsCount){
+          this.click('#pnnext');
+          this.waitForSelectorTextChange('#resultStats');
+        }else{
+          sharedContext.endOfResults = true;
+        }
+      }, function(){
+        if(!/\/sorry/.test(this.getCurrentUrl())){
+          lastError = { message: 'results_not_found', details: { url: this.getCurrentUrl(), html: this.getHTML() } };
+        }else if(!!sharedContext.captcha){
+          // TODO add captcha to sharedContext
+          lastError = { message: 'invalid_captcha', details: { captcha: sharedContext.captcha }};
+        }else{
+          lastError = { message: 'captcha_detected' };
+        }
+      }, options.timeout.getResults);
+
+      casper.run(function(){
+        callback({ err: lastError, output: output, sharedContext: sharedContext });
+      });
+    });
+
+    page.defineMethod('getCaptchaImg', function(callback){
+      var casper = objectSpace.casper, lastError, captcha;
+      casper.then(function(){
+        if(/\/sorry/.test(this.getCurrentUrl())){
+          try{
+            captcha = this.captureBase64('jpg', 'img');
+          }catch(err){
+            // TODO send err ?
+            lastError = { message: 'captcha_timeout', details: 'End on url : ' + this.getCurrentUrl() };
+          }
+        }else{
+          lastError = { message: 'captcha_not_needed', details: 'End on url : ' + this.getCurrentUrl() };
+        }
+      });
+      casper.run(function(){
+        callback({ err: lastError, captcha: captcha });
+      });
+    });
+
+    page.defineMethod('fillCaptchaSolution', function(solution, callback){
+      var casper = objectSpace.casper, lastError;
+      casper.then(function(){
+        console.log('Fill captcha solution ' + solution + ' ' + this.getCurrentUrl());
+        // TODO maybe handling error here ?
+        this.fillSelectors('form', {
+          'input[name=captcha]': solution
+        }, true);
+      });
+      casper.run(function(){
+        console.log('Captcha filled get ' + this.getCurrentUrl());
+        if(/\/sorry/.test(this.getCurrentUrl())){
+          lastError = { message: 'invalid_captcha', details: { captcha: solution }}; // TODO why return solution again ?
+        }
+        callback(lastError);
+      });
+    });
+
+    return page.invokeAsyncMethod('setupCasper', options).then(handleErrorFromCasper);
+  })
+  .then(function(){
+    return page.invokeAsyncMethod('searchGoogle', options, {}).then(handleErrorFromCasper);
+  })
+  .then(function(){
+    function scrapeResults(){
+      if(options.limit <= sharedContext.resultsCount || sharedContext.endOfResults){
+        return output;
+      }
+      return page.invokeAsyncMethod('scrapeResults', options, sharedContext)
+      .then(handleErrorFromCasper)
+      .then(function handleSharedContext(casperReturns){
+        output.urls = output.urls.concat(casperReturns.output.urls);
+        if(options.keepPages){
+          output.pages.push(casperReturns.output.html);
+        }
+        sharedContext = casperReturns.sharedContext;
+        return scrapeResults();
+      });
+    }
+
+    return scrapeResults().catch(catchCaptcha(scrapeResults));
+  })
+  .then(function(output){
+    callback(null, output);
+  })
+  .catch(function(err){
+    callback(err);
+  });
 }
 
 module.exports.search = search;

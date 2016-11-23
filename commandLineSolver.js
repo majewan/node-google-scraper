@@ -15,9 +15,7 @@ module.exports.solve = function(image, callback){
   });
 
   rl.question('Captcha please ?', function(captcha) {
-    callback(null, null, captcha);
+    callback(null, captcha);
     rl.close();
   });
 };
-
-

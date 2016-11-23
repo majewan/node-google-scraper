@@ -1,7 +1,7 @@
 {
   "name": "google-scraper",
-  "version": "0.1.0",
-  "description": "Google scraper based on SpookyJS, CasperJS, PhantomJS",
+  "version": "1.0.0",
+  "description": "Google scraper based on CasperJS, PhantomJS",
   "main": "index.js",
   "scripts": {
     "test": "mocha"
@@ -18,6 +18,8 @@
     "casperjs": "~1.1.3",
     "debug": "~2.2.0",
     "lodash": "~4.14.0",
-    "phantom": "^2.1.21"
+    "phantom": "^2.1.21",
+    "bluebird": "~3.4.6",
+    "core-js": "~2.4.1"
   }
 }
