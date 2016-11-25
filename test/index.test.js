@@ -20,7 +20,7 @@ describe('GoogleSearchScraper', function() {
     });
 
     it('With 20 limit results', function(done){
-      this.timeout(10000);
+      this.timeout(30000);
       GoogleSearchScraper.search({ query : 'site:wikipedia.fr', limit: 20 }, function(err, result){
         if(err){
           return done(err);

@@ -39,10 +39,8 @@ function search(options, callback){
         .then(function(casperReturns){
           return options.solver.solveAsync(new Buffer(casperReturns.captcha, 'base64'));
         })
-        .then(function(solution){
-          // TODO solver return other info than solution
-          sharedContext.captcha = solution;
-          return page.invokeAsyncMethod('fillCaptchaSolution', solution).then(handleErrorFromCasper);
+        .then(function(captcha){
+          return page.invokeAsyncMethod('fillCaptchaSolution', captcha.solution).then(handleErrorFromCasper);
         })
         .then(retryCall);
       }else{
@@ -51,12 +49,11 @@ function search(options, callback){
     };
   }
 
-  // TODO refactor captcha (maybe remove from sharedContext)
-  var sharedContext = { resultsCount: 0, endOfResults: false, captcha: null };
+  var sharedContext = { resultsCount: 0, endOfResults: false };
 
   var phInstance, page;
   phantom.create(options.phantomOptions, {
-    logLevel: 'info'
+    logLevel: 'error'
   })
   .then(function(instance){
     phInstance = instance;
@@ -88,7 +85,7 @@ function search(options, callback){
       });
     });
 
-    page.defineMethod('searchGoogle', function(options, sharedContext, callback){
+    page.defineMethod('searchGoogle', function(options, callback){
       var casper = objectSpace.casper, lastError;
       console.log('Start wait Google form to be ready');
       casper.waitForSelector('form[action="/search"] input[name="q"]', function(){
@@ -98,13 +95,17 @@ function search(options, callback){
       }, function(){
         if(!/\/sorry/.test(this.getCurrentUrl())){
           lastError = { message: 'form_not_found', details: { url: this.getCurrentUrl(), html: this.getHTML() } };
-        }else if(!!sharedContext.captcha){
-          // TODO add captcha to sharedContext
-          lastError = { message: 'invalid_captcha', details: { captcha: sharedContext.captcha }};
         }else{
           lastError = { message: 'captcha_detected' };
         }
       }, options.timeout.waitSearchForm);
+      casper.waitForUrl(/#q=|\/sorry/, function(){
+        if(/\/sorry/.test(this.getCurrentUrl())){
+          lastError = { message: 'captcha_detected' };
+        }
+      }, function(){
+        console.log('Timeout on ' + this.getCurrentUrl());
+      }, 10000);
       casper.run(function(){
         console.log('Query sended get ' + this.getCurrentUrl());
         callback({ err: lastError });
@@ -113,7 +114,6 @@ function search(options, callback){
 
     page.defineMethod('scrapeResults', function(options, sharedContext, callback){
       var casper = objectSpace.casper, lastError, output;
-      // TODO : change this waitFor selector or redirect
       casper.waitForSelector('#res #ires h3', function(){
         console.log('Parsing results.');
         var links = this.evaluate(function getLinks() {
@@ -133,9 +133,6 @@ function search(options, callback){
       }, function(){
         if(!/\/sorry/.test(this.getCurrentUrl())){
           lastError = { message: 'results_not_found', details: { url: this.getCurrentUrl(), html: this.getHTML() } };
-        }else if(!!sharedContext.captcha){
-          // TODO add captcha to sharedContext
-          lastError = { message: 'invalid_captcha', details: { captcha: sharedContext.captcha }};
         }else{
           lastError = { message: 'captcha_detected' };
         }
@@ -153,11 +150,10 @@ function search(options, callback){
           try{
             captcha = this.captureBase64('jpg', 'img');
           }catch(err){
-            // TODO send err ?
-            lastError = { message: 'captcha_timeout', details: 'End on url : ' + this.getCurrentUrl() };
+            lastError = { message: 'captcha_timeout', details: { url: this.getCurrentUrl() } };
           }
         }else{
-          lastError = { message: 'captcha_not_needed', details: 'End on url : ' + this.getCurrentUrl() };
+          lastError = { message: 'captcha_not_needed', details: { url: this.getCurrentUrl() } };
         }
       });
       casper.run(function(){
@@ -175,18 +171,18 @@ function search(options, callback){
         }, true);
       });
       casper.run(function(){
-        console.log('Captcha filled get ' + this.getCurrentUrl());
+        console.log('Captcha filled now GET ' + this.getCurrentUrl());
         if(/\/sorry/.test(this.getCurrentUrl())){
-          lastError = { message: 'invalid_captcha', details: { captcha: solution }}; // TODO why return solution again ?
+          lastError = { message: 'invalid_captcha', details: { url: this.getCurrentUrl() }};
         }
-        callback(lastError);
+        callback({ err: lastError });
       });
     });
 
     return page.invokeAsyncMethod('setupCasper', options).then(handleErrorFromCasper);
   })
   .then(function(){
-    return page.invokeAsyncMethod('searchGoogle', options, {}).then(handleErrorFromCasper);
+    return page.invokeAsyncMethod('searchGoogle', options).then(handleErrorFromCasper).catch(catchCaptcha());
   })
   .then(function(){
     function scrapeResults(){
@@ -208,9 +204,11 @@ function search(options, callback){
     return scrapeResults().catch(catchCaptcha(scrapeResults));
   })
   .then(function(output){
+    phInstance.exit();
     callback(null, output);
   })
   .catch(function(err){
+    phInstance.exit();
     callback(err);
   });
 }

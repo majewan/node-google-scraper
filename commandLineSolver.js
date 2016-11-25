@@ -14,8 +14,8 @@ module.exports.solve = function(image, callback){
     output: process.stdout
   });
 
-  rl.question('Captcha please ?', function(captcha) {
-    callback(null, captcha);
+  rl.question('Captcha please ?', function(solution) {
+    callback(null, { solution: solution });
     rl.close();
   });
 };
