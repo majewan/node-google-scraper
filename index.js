@@ -2,7 +2,6 @@ var phantom = require('phantom');
 var fs = require('fs');
 var _ = require('lodash');
 var Promise = require('bluebird');
-var debug = require('debug')('node-google-scraper');
 
 function search(options, callback){
   _.defaultsDeep(options, {
