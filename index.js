@@ -51,7 +51,7 @@ function search(options, callback){
   var sharedContext = { resultsCount: 0, endOfResults: false };
 
   var phInstance, page;
-  phantom.create(options.phantomOptions, {
+  return phantom.create(options.phantomOptions, {
     logLevel: 'error'
   })
   .then(function(instance){
@@ -64,7 +64,11 @@ function search(options, callback){
       var lastError;
       phantom.casperPath = './node_modules/casperjs';
       phantom.injectJs(phantom.casperPath + '/bin/bootstrap.js');
-      var casper = require('casper').create();
+      var casper = require('casper').create({
+        onLoadError: function(casper, url, status){
+          lastError = { message: 'fail_load_ressource', details: { status: status, url : url } };
+        }
+      });
       objectSpace.casper = casper;
       casper.start();
       casper.userAgent(options.userAgent);
@@ -204,11 +208,18 @@ function search(options, callback){
   })
   .then(function(output){
     phInstance.exit();
-    callback(null, output);
+    if(callback){
+      callback(null, output);
+    }
+    return output;
   })
   .catch(function(err){
     phInstance.exit();
-    callback(err);
+    if(callback){
+      callback(err);
+    }else{
+      throw err;
+    }
   });
 }
 
