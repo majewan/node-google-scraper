@@ -218,7 +218,9 @@ function search(options, callback){
     return output;
   })
   .catch(function(err){
-    phInstance.exit();
+    if(phInstance){
+      phInstance.exit();
+    }
     if(callback){
       callback(err);
     }else{
