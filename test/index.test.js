@@ -67,7 +67,7 @@ describe('GoogleSearchScraper', function() {
 
   });
 
-  describe('Spooky proxy option', function() {
+  describe('Proxy option', function() {
 
     it('With proxy option', function(done){
       this.timeout(300000);

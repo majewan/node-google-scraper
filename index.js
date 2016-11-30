@@ -1,7 +1,5 @@
 var phantom = require('phantom');
-var fs = require('fs');
 var _ = require('lodash');
-var Promise = require('bluebird');
 
 function search(options, callback){
   _.defaultsDeep(options, {
@@ -15,7 +13,7 @@ function search(options, callback){
       getResults: 10000
     }
   });
-  if(options.solver) Promise.promisifyAll(options.solver);
+
   var output = {
     urls: [],
     pages: []
@@ -36,10 +34,16 @@ function search(options, callback){
       if(err.message === 'captcha_detected' && options.solver){
         return page.invokeAsyncMethod('getCaptchaImg').then(handleErrorFromCasper)
         .then(function(casperReturns){
-          return options.solver.solveAsync(new Buffer(casperReturns.captcha, 'base64'));
+          return options.solver.solve(new Buffer(casperReturns.captcha, 'base64'));
         })
         .then(function(captcha){
-          return page.invokeAsyncMethod('fillCaptchaSolution', captcha.solution).then(handleErrorFromCasper);
+          return page.invokeAsyncMethod('fillCaptchaSolution', captcha.solution).then(handleErrorFromCasper)
+          .catch(function(err){
+            if(err.message === 'invalid_captcha' && options.solver && options.solver.report){
+               options.solver.report(captcha);
+            }
+            throw err;
+          });
         })
         .then(retryCall);
       }else{

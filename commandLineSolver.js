@@ -3,8 +3,9 @@ var readline = require('readline');
 var fs = require('fs');
 var exec = require('child_process').exec,
     child;
+var Promise = require('bluebird');
 
-module.exports.solve = function(image, callback){
+module.exports.solve = function(image){
   fs.writeFileSync('tmp.jpg', image);
   //Use eog (gnome tool) to display captcha image
   child = exec('eog tmp.jpg');
@@ -14,8 +15,10 @@ module.exports.solve = function(image, callback){
     output: process.stdout
   });
 
-  rl.question('Captcha please ?', function(solution) {
-    callback(null, { solution: solution });
+  return (new Promise(function(resolve){
+    rl.question('Captcha please ?', resolve);
+  })).then(function(solution){
     rl.close();
+    return {solution: solution};
   });
 };
