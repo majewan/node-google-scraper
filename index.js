@@ -39,6 +39,7 @@ function search(options, callback){
         .then(function(captcha){
           return page.invokeAsyncMethod('fillCaptchaSolution', captcha.solution).then(handleErrorFromCasper)
           .catch(function(err){
+            err.details.captcha = captcha;
             if(err.message === 'invalid_captcha' && options.solver && options.solver.report){
                options.solver.report(captcha);
             }
@@ -157,7 +158,7 @@ function search(options, callback){
           try{
             captcha = this.captureBase64('jpg', 'img');
           }catch(err){
-            lastError = { message: 'captcha_timeout', details: { url: this.getCurrentUrl() } };
+            lastError = { message: 'captcha_timeout', details: { message: err.message, url: this.getCurrentUrl() } };
           }
         }else{
           lastError = { message: 'captcha_not_needed', details: { url: this.getCurrentUrl() } };
