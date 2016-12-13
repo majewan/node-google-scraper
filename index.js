@@ -153,7 +153,7 @@ function search(options, callback){
 
     page.defineMethod('getCaptchaImg', function(callback){
       var casper = objectSpace.casper, lastError, captcha;
-      casper.then(function(){
+      casper.waitForSelector('img', function(){
         if(/\/sorry/.test(this.getCurrentUrl())){
           try{
             captcha = this.captureBase64('jpg', 'img');
