@@ -1,5 +1,6 @@
 var phantom = require('phantom');
 var _ = require('lodash');
+var debug = require('debug')('google-scraper');
 
 function search(options, callback){
   _.defaultsDeep(options, {
@@ -32,6 +33,7 @@ function search(options, callback){
   function catchCaptcha(retryCall){
     return function(err){
       if(err.message === 'captcha_detected' && options.solver){
+        debug('Captcha detected.');
         return page.invokeAsyncMethod('getCaptchaImg').then(handleErrorFromCasper)
         .then(function(casperReturns){
           return options.solver.solve(new Buffer(casperReturns.captcha, 'base64'));
@@ -57,7 +59,7 @@ function search(options, callback){
 
   var phInstance, page;
   return phantom.create(options.phantomOptions, {
-    logLevel: 'error'
+    logLevel: 'info'
   })
   .then(function(instance){
     phInstance = instance;
@@ -169,7 +171,9 @@ function search(options, callback){
         }else{
           lastError = { message: 'captcha_not_needed', details: { url: this.getCurrentUrl() } };
         }
-      });
+      }, function(){
+        lastError = { message: 'captcha_timeout', details: { url: this.getCurrentUrl(), html: this.getHTML() } };
+      }, 10000);
       casper.run(function(){
         callback({ err: lastError, captcha: captcha });
       });
@@ -192,10 +196,11 @@ function search(options, callback){
         callback({ err: lastError });
       });
     });
-
+    debug('Setup casper');
     return page.invokeAsyncMethod('setupCasper', options).then(handleErrorFromCasper);
   })
   .then(function(){
+    debug('Start search on Google.');
     return page.invokeAsyncMethod('searchGoogle', options).then(handleErrorFromCasper).catch(catchCaptcha());
   })
   .then(function(){
@@ -214,7 +219,7 @@ function search(options, callback){
         return scrapeResults();
       });
     }
-
+    debug('Start scrape results.');
     return scrapeResults().catch(catchCaptcha(scrapeResults));
   })
   .then(function(output){

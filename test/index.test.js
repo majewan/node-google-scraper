@@ -147,6 +147,7 @@ describe('GoogleSearchScraper', function() {
       ]}, function(err, result){
         if(err){
           if(err.details) require('fs').writeFileSync('error.html', err.details.html);
+          console.log(err.details.url);
           return done(err);
         }
         assert.strictEqual(result.pages.length, 1, 'Scraper should return a page.');
