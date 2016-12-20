@@ -1,6 +1,7 @@
 
 var assert = require('assert'),
-    GoogleSearchScraper = require('../index');
+    GoogleSearchScraper = require('../index'),
+    fs = require('fs');
 
 describe('GoogleSearchScraper', function() {
   describe('OptionLimit', function() {
@@ -65,6 +66,68 @@ describe('GoogleSearchScraper', function() {
       });
     });
 
+  });
+
+  describe('ViewPortSize DPI Options', function() {
+    this.timeout(30000);
+    it('1080p', function(done){
+      GoogleSearchScraper.search({
+        query : 'facebook',
+        limit: 10,
+        keepPages: true,
+        solver: GoogleSearchScraper.commandLineSolver,
+        headers: {
+          'Accept-Language': 'fr-FR,fr,*'
+        },
+        viewportSize: {
+          width: 1920,
+          height: 1080
+        }
+      }, function(err, result){
+        assert.strictEqual(result.urls.length, 10, 'Must return 10 results');
+        fs.writeFileSync( '1920x1080.html', result.pages[0]);
+        done(err);
+      });
+    });
+    it('Little screen portrait.', function(done){
+      GoogleSearchScraper.search({
+        query : 'facebook',
+        limit: 10,
+        keepPages: true,
+        solver: GoogleSearchScraper.commandLineSolver,
+        headers: {
+          'Accept-Language': 'fr-FR,fr,*'
+        },
+        viewportSize: {
+          width: 768,
+          height: 1024
+        }
+      }, function(err, result){
+        assert.strictEqual(result.urls.length, 10, 'Must return 10 results');
+        fs.writeFileSync( '768x1024.html', result.pages[0]);
+        done(err);
+      });
+    });
+    it('1080p with 300ppi', function(done){
+      GoogleSearchScraper.search({
+        query : 'facebook',
+        limit: 10,
+        keepPages: true,
+        solver: GoogleSearchScraper.commandLineSolver,
+        headers: {
+          'Accept-Language': 'fr-FR,fr,*'
+        },
+        viewportSize: {
+          width: 1920,
+          height: 1080
+        },
+        dpi: 300
+      }, function(err, result){
+        assert.strictEqual(result.urls.length, 10, 'Must return 10 results');
+        fs.writeFileSync( '1920x1080-300dpi.html', result.pages[0]);
+        done(err);
+      });
+    });
   });
 
   describe('Proxy option', function() {

@@ -81,6 +81,12 @@ function search(options, callback){
         if(options.headers){
           this.page.customHeaders = options.headers;
         }
+        if(options.viewportSize){
+          this.page.viewportSize = options.viewportSize;
+        }
+        if(options.dpi){
+          this.page.dpi = options.dpi;
+        }
         console.log('Setup casper done, open https://' + options.host);
       });
       casper.thenOpen('https://' + options.host);
