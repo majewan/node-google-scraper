@@ -59,7 +59,7 @@ function search(options, callback){
 
   var phInstance, page;
   return phantom.create(options.phantomOptions, {
-    logLevel: 'info'
+    logLevel: 'error'
   })
   .then(function(instance){
     phInstance = instance;
