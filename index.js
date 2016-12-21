@@ -32,7 +32,7 @@ function search(options, callback){
 
   function catchCaptcha(retryCall){
     return function(err){
-      if(err.message === 'captcha_detected' && options.solver){
+      if(err.message === 'captcha_detected' && options.solver){ // TODO debug not show when options.solver is empty
         debug('Captcha detected.');
         return page.invokeAsyncMethod('getCaptchaImg').then(handleErrorFromCasper)
         .then(function(casperReturns){
@@ -172,8 +172,8 @@ function search(options, callback){
           lastError = { message: 'captcha_not_needed', details: { url: this.getCurrentUrl() } };
         }
       }, function(){
-        lastError = { message: 'captcha_timeout', details: { url: this.getCurrentUrl(), html: this.getHTML() } };
-      }, 10000);
+        lastError = { message: 'captcha_img_notfound', details: { url: this.getCurrentUrl() } };
+      });
       casper.run(function(){
         callback({ err: lastError, captcha: captcha });
       });
