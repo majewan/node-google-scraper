@@ -1,6 +1,8 @@
-var phantom = require('phantom');
-var _ = require('lodash');
-var debug = require('debug')('google-scraper');
+'use strict';
+Promise = require('bluebird');
+const phantom = require('phantom');
+const _ = require('lodash');
+const debug = require('debug')('google-search-scraper');
 
 function search(options, callback){
   _.defaultsDeep(options, {
@@ -12,17 +14,18 @@ function search(options, callback){
       waitSearchForm: 30000,
       captcha: 120000,
       getResults: 10000
-    }
+    },
+    phantomLogLevel: 'error'
   });
 
-  var output = {
+  let output = {
     urls: [],
     pages: []
   };
 
   function handleErrorFromCasper(casperReturns){
     if(casperReturns && casperReturns.err){
-      var error = new Error(casperReturns.err.message);
+      let error = new Error(casperReturns.err.message);
       error.details = casperReturns.err.details;
       throw error;
     }else{
@@ -55,11 +58,11 @@ function search(options, callback){
     };
   }
 
-  var sharedContext = { resultsCount: 0, endOfResults: false };
+  let sharedContext = { resultsCount: 0, endOfResults: false };
 
-  var phInstance, page;
+  let phInstance, page;
   return phantom.create(options.phantomOptions, {
-    logLevel: 'error'
+    logLevel: options.phantomLogLevel
   })
   .then(function(instance){
     phInstance = instance;
@@ -224,21 +227,15 @@ function search(options, callback){
   })
   .then(function(output){
     phInstance.exit();
-    if(callback){
-      callback(null, output);
-    }
     return output;
   })
   .catch(function(err){
     if(phInstance){
       phInstance.exit();
     }
-    if(callback){
-      callback(err);
-    }else{
-      throw err;
-    }
-  });
+    throw err;
+  })
+  .asCallback(callback);
 }
 
 module.exports.search = search;

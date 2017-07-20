@@ -1,17 +1,18 @@
-
-var assert = require('assert'),
-    GoogleSearchScraper = require('../index'),
-    fs = require('fs');
+const assert = require('assert'),
+      GoogleSearchScraper = require('../index'),
+      fs = require('fs'),
+      debug = require('debug')('google-search-scraper:test');
 
 describe('GoogleSearchScraper', function() {
   describe('OptionLimit', function() {
 
     it('Without limit option', function(done){
-      this.timeout(30000);
-      GoogleSearchScraper.search({ query : 'site:nodejs.org' }, function(err, result){
+      this.timeout(60000);
+      GoogleSearchScraper.search({ query : 'site:www.npmjs.com', phantomLogLevel: 'info' }, function(err, result){
         if(err){
           return done(err);
         }
+        debug(result);
         assert.notEqual(result.urls.length, 0, 'Request site:nodejs.org can\'t have 0 results.');
         if(result.urls.length < 100){
           assert.fail(result.urls.length, 100, 'Request site:nodejs.org can\'t have less than 100 results.');
@@ -37,7 +38,7 @@ describe('GoogleSearchScraper', function() {
 
     it('Without keepPages', function(done){
       this.timeout(10000);
-      GoogleSearchScraper.search({ query : 'site:nodejs.org', limit: 10 }, function(err, result){
+      GoogleSearchScraper.search({ query : 'site:www.npmjs.com', limit: 10 }, function(err, result){
         if(err){
           return done(err);
         }
@@ -52,7 +53,7 @@ describe('GoogleSearchScraper', function() {
 
     it('With keepPages', function(done){
       this.timeout(10000);
-      GoogleSearchScraper.search({ query : 'site:nodejs.org', limit: 10, keepPages: true }, function(err, result){
+      GoogleSearchScraper.search({ query : 'site:www.npmjs.com', limit: 10, keepPages: true }, function(err, result){
         if(err){
           return done(err);
         }

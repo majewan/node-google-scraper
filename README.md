@@ -1,4 +1,4 @@
-# Google scraper
+# Google Search Scraper
 
 Google scraper is a simple tool to scrape google search engine writen for nodejs.
 Based on phantom and Casper. This work has been inspired by `node-google-search-scraper` package, and the usage is similar.
@@ -6,16 +6,17 @@ Based on phantom and Casper. This work has been inspired by `node-google-search-
 ## Features
 
 * Scrape Google results and can return rendered page for other usecase.
-* Handle captchas
+* Handle old captchas :-(
 * Custom user agent and custom headers
 * Use JS for rendering Google
+* Promise or callback results
 
 ## Usage
 
 ```
-var GoogleScraper = require('google-scraper');
+var GoogleSearchScraper = require('google-search-scraper');
 GoogleSearchScraper.search({
-  query : 'site:nodejs.org', // Query for google engine
+  query : 'site:www.npmjs.com', // Query for google engine
   limit: 10, // Limit number of results
   keepPages: false, // Populate results.pages with rendered HTML content.
   solver: GoogleScraper.commandLineSolver, // Optional solver for resolving captcha (see commandLineSolver.js)
@@ -26,8 +27,12 @@ GoogleSearchScraper.search({
   phantomOptions: [ // Command line options use for PhantomJS
     '--ignore-ssl-errors=yes'
   ]
-}, function(err, results){
+})
+.then(results => {
   console.log(results);
+})
+.catch(error => {
+  console.error(error);
 });
 
 ```

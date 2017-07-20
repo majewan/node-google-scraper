@@ -1,7 +1,7 @@
 {
-  "name": "google-scraper",
+  "name": "google-search-scraper",
   "version": "1.0.0",
-  "description": "Google scraper based on CasperJS, PhantomJS",
+  "description": "Google Search scraper based on CasperJS and PhantomJS",
   "main": "index.js",
   "scripts": {
     "test": "mocha"
@@ -12,6 +12,13 @@
     "search",
     "engine"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/majewan/node-google-scraper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/majewan/node-google-scraper/issues"
+  },
   "author": "Majewan Interactive",
   "license": "GPL-v3",
   "dependencies": {
@@ -20,5 +27,8 @@
     "lodash": "~4.14.0",
     "phantom": "^2.1.21",
     "bluebird": "~3.4.6"
+  },
+  "engines": {
+    "node": ">=6"
   }
 }
