@@ -1,7 +1,7 @@
 {
-  "name": "google-search-scraper",
+  "name": "phantom-google-search-scraper",
   "version": "1.0.0",
-  "description": "Google Search scraper based on CasperJS and PhantomJS",
+  "description": "Google Search scraper for node based on CasperJS and PhantomJS",
   "main": "index.js",
   "scripts": {
     "test": "mocha"

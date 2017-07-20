@@ -14,7 +14,7 @@ Based on phantom and Casper. This work has been inspired by `node-google-search-
 ## Usage
 
 ```
-var GoogleSearchScraper = require('google-search-scraper');
+var GoogleSearchScraper = require('phantom-google-search-scraper');
 GoogleSearchScraper.search({
   query : 'site:www.npmjs.com', // Query for google engine
   limit: 10, // Limit number of results
