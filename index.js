@@ -133,10 +133,10 @@ function search(options, callback){
 
     page.defineMethod('scrapeResults', function(options, sharedContext, callback){
       var casper = objectSpace.casper, lastError, output;
-      casper.waitForSelector('#res #ires h3', function(){
+      casper.waitForSelector('#ires a', function(){
         console.log('Parsing results.');
         var links = this.evaluate(function getLinks() {
-          var links = document.querySelectorAll('.g h3 a');
+          var links = document.querySelectorAll('.g h3 a'); // TODO : this doesn't work with mobile pages
           return Array.prototype.map.call(links, function(e) {
               return e.getAttribute('href');
           });
