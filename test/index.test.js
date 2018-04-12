@@ -21,14 +21,10 @@ describe('GoogleSearchScraper', function() {
       });
     });
 
-    it('With 20 limit results', function(done){
+    it('With 20 limit results', function(){
       this.timeout(30000);
-      GoogleSearchScraper.search({ query : 'site:wikipedia.fr', limit: 20 }, function(err, result){
-        if(err){
-          return done(err);
-        }
+      return GoogleSearchScraper.search({ query : 'site:wikipedia.fr', limit: 20, phantomLogLevel: 'info' }).then(result => {
         assert.strictEqual(result.urls.length, 20, 'Must be equal to 20 results.');
-        done();
       });
     });
 
@@ -37,8 +33,8 @@ describe('GoogleSearchScraper', function() {
   describe('OptionKeepPages', function() {
 
     it('Without keepPages', function(done){
-      this.timeout(10000);
-      GoogleSearchScraper.search({ query : 'site:www.npmjs.com', limit: 10 }, function(err, result){
+      this.timeout(200000);
+      GoogleSearchScraper.search({ query : 'site:www.npmjs.com', limit: 10, phantomLogLevel: 'info' }, function(err, result){
         if(err){
           return done(err);
         }
@@ -52,8 +48,8 @@ describe('GoogleSearchScraper', function() {
     });
 
     it('With keepPages', function(done){
-      this.timeout(10000);
-      GoogleSearchScraper.search({ query : 'site:www.npmjs.com', limit: 10, keepPages: true }, function(err, result){
+      this.timeout(200000);
+      GoogleSearchScraper.search({ query : 'site:www.npmjs.com', limit: 10, keepPages: true, phantomLogLevel: 'info' }, function(err, result){
         if(err){
           return done(err);
         }
@@ -64,6 +60,17 @@ describe('GoogleSearchScraper', function() {
         }
         //require('fs').writeFileSync('outputpage.html', result.pages[0]);
         done();
+      });
+    });
+    it('With keepPages 2 pages', function(){
+      this.timeout(200000);
+      return GoogleSearchScraper.search({ query : 'site:www.npmjs.com', limit: 20, keepPages: true, phantomLogLevel: 'info' }).then( result => {
+        assert.strictEqual(result.pages.length, 2, 'Scraper should return a page.');
+        assert.notEqual(result.urls.length, 0, 'Request site:nodejs.org can\'t have 0 results.');
+        if(result.urls.length < 20){
+          assert.fail(result.urls.length, 20, 'Request site:nodejs.org can\'t have less than 20 results.');
+        }
+        //require('fs').writeFileSync('outputpage.html', result.pages[0]);
       });
     });
 
@@ -144,7 +151,9 @@ describe('GoogleSearchScraper', function() {
       },
       phantomOptions: [
         '--proxy-type=socks5',
-        '--proxy=localhost:9050'
+        '--proxy=localhost:9050',
+        '--ssl-protocol=tlsv1',
+        '--ignore-ssl-errors=yes'
       ]}, function(err, result){
         if(err){
           if(err.details) require('fs').writeFileSync('error.html', err.details.html);

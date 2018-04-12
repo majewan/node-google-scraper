@@ -15,7 +15,8 @@ function search(options, callback){
       captcha: 120000,
       getResults: 10000
     },
-    phantomLogLevel: 'error'
+    phantomLogLevel: 'error',
+    phantomOptions: ['--ssl-protocol=tlsv1', '--ignore-ssl-errors=yes']
   });
 
   let output = {
@@ -35,8 +36,8 @@ function search(options, callback){
 
   function catchCaptcha(retryCall){
     return function(err){
-      if(err.message === 'captcha_detected' && options.solver){ // TODO debug not show when options.solver is empty
-        debug('Captcha detected.');
+      if(err.message === 'captcha_detected' && options.solver){
+        debug('handle captcha with solver');
         return page.invokeAsyncMethod('getCaptchaImg').then(handleErrorFromCasper)
         .then(function(casperReturns){
           return options.solver.solve(new Buffer(casperReturns.captcha, 'base64'));
@@ -118,7 +119,7 @@ function search(options, callback){
           lastError = { message: 'captcha_detected' };
         }
       }, options.timeout.waitSearchForm);
-      casper.waitForUrl(/#q=|\/sorry/, function(){
+      casper.waitForUrl(/#q=|\/search|\/sorry/, function(){
         if(/\/sorry/.test(this.getCurrentUrl())){
           lastError = { message: 'captcha_detected' };
         }
@@ -133,7 +134,7 @@ function search(options, callback){
 
     page.defineMethod('scrapeResults', function(options, sharedContext, callback){
       var casper = objectSpace.casper, lastError, output;
-      casper.waitForSelector('#ires a', function(){
+      casper.waitForSelector('#ires a, .ZINbbc.xpd', function(){
         console.log('Parsing results.');
         var links = this.evaluate(function getLinks() {
           var links = document.querySelectorAll('.g h3 a'); // TODO : this doesn't work with mobile pages
