@@ -147,6 +147,9 @@ function search(options, callback){
         if(this.exists('#pnnext') && options.limit > sharedContext.resultsCount){
           this.click('#pnnext');
           this.waitForSelectorTextChange('#resultStats');
+        } else if(this.exists('#RVQdVd') && options.limit > sharedContext.resultsCount){
+          this.click('#RVQdVd');
+          //this.waitForSelectorTextChange('#resultStats');
         }else{
           sharedContext.endOfResults = true;
         }
