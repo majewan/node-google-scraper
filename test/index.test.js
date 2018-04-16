@@ -170,4 +170,71 @@ describe('GoogleSearchScraper', function() {
     });
   });
 
+  describe('Mobile IOS', function(){
+    it('"site:hugopoi.net asus" with 50 limit results', function(){
+      this.timeout(30000);
+      return GoogleSearchScraper.search({
+        query : 'site:hugopoi.net asus',
+        limit: 50,
+        phantomLogLevel: 'info',
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 10_2_1 like Mac OS X) AppleWebKit/602.4.6 (KHTML, like Gecko) Version/10.0 Mobile/14D27 Safari/602.1',
+        headers: {
+          'Accept-Language': 'fr-FR,fr,*'
+        },
+        viewportSize: {
+          width: 1080,
+          height: 1920
+        },
+        dpi: 401
+      }).then(result => {
+        console.log(result.urls);
+        assert.strictEqual(result.urls.length, 11, 'Must be equal to 11 results.');
+      });
+    });
+    it('"credit pas cher" with 50 limit results', function(){
+      this.timeout(30000);
+      return GoogleSearchScraper.search({
+        query : 'credit pas cher',
+        limit: 50,
+        phantomLogLevel: 'info',
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 10_2_1 like Mac OS X) AppleWebKit/602.4.6 (KHTML, like Gecko) Version/10.0 Mobile/14D27 Safari/602.1',
+        headers: {
+          'Accept-Language': 'fr-FR,fr,*'
+        },
+        viewportSize: {
+          width: 1080,
+          height: 1920
+        },
+        dpi: 401
+      }).then(result => {
+        console.log(result.urls);
+        assert.strictEqual(result.urls.length >= 50, true, 'Must be superior or equal to 50 results.');
+      });
+    });
+  });
+
+  describe('Mobile Firefox', function(){
+    it('"site:hugopoi.net asus" with 50 limits', function(){
+      this.timeout(30000);
+      return GoogleSearchScraper.search({
+        query : 'site:hugopoi.net asus',
+        limit: 50,
+        phantomLogLevel: 'info',
+        keepPages: true,
+        userAgent: 'Mozilla/5.0 (Android 7.1.2; Mobile; rv:59.0) Gecko/59.0 Firefox/59.0',
+        headers: {
+          'Accept-Language': 'fr-FR,fr,*'
+        },
+        viewportSize: {
+          width: 1080,
+          height: 1920
+        },
+        dpi: 401
+      }).then(result => {
+        require('fs').writeFileSync('dump.html', result.pages[0]);
+        console.log(result.urls);
+        assert.strictEqual(result.urls.length, 11, 'Must be equal to 11 results.');
+      });
+    });
+  });
 });

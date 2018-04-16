@@ -59,7 +59,7 @@ function search(options, callback){
     };
   }
 
-  let sharedContext = { resultsCount: 0, endOfResults: false };
+  let sharedContext = { resultsCount: 0, pageCount: 0, endOfResults: false };
 
   let phInstance, page;
   return phantom.create(options.phantomOptions, {
@@ -137,19 +137,34 @@ function search(options, callback){
       casper.waitForSelector('#ires a, .ZINbbc.xpd', function(){
         console.log('Parsing results.');
         var links = this.evaluate(function getLinks() {
-          var links = document.querySelectorAll('.g h3 a'); // TODO : this doesn't work with mobile pages
+          var links = document.querySelectorAll('.g h3 a');
           return Array.prototype.map.call(links, function(e) {
               return e.getAttribute('href');
           });
         });
+        if(this.exists('#RVQdVd')){
+          links = this.evaluate(function getLinks(sharedContext) {
+            var links = document.querySelectorAll( ((sharedContext.pageCount === 0) ? '#ires' : ('#arc-srp' + sharedContext.pageCount*10)) + ' a.C8nzq' );
+            return Array.prototype.map.call(links, function(e) {
+              return e.getAttribute('href');
+            });
+          }, sharedContext);
+        }
         sharedContext.resultsCount += links.length;
+        sharedContext.pageCount++;
         output = { html: (options.keepPages) ? this.getHTML() : null, urls: links };
-        if(this.exists('#pnnext') && options.limit > sharedContext.resultsCount){
-          this.click('#pnnext');
-          this.waitForSelectorTextChange('#resultStats');
-        } else if(this.exists('#RVQdVd') && options.limit > sharedContext.resultsCount){
+        var isNextButtonVisible = this.evaluate(function isNextButtonVisibleInDOM(){
+          var button = document.querySelector('#RVQdVd');
+          if(button){
+            return button.offsetWidth !== 0 || button.offsetHeight !== 0;
+          }
+        });
+        if(this.exists('#pnnext, td.b.navend:last-child a.fl') && options.limit > sharedContext.resultsCount){
+          this.click('#pnnext, td.b.navend:last-child a.fl');
+          this.waitForSelectorTextChange('#resultStats, #UGNjRe td a');
+        } else if(this.exists('#RVQdVd') && isNextButtonVisible && options.limit > sharedContext.resultsCount){
           this.click('#RVQdVd');
-          //this.waitForSelectorTextChange('#resultStats');
+          this.waitUntilVisible('#arc-srp' + sharedContext.pageCount*10);
         }else{
           sharedContext.endOfResults = true;
         }
