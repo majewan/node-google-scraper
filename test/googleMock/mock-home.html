@@ -1,0 +1,24 @@
+<html>
+  <head>
+    <title>Home</title>
+  </head>
+  <body>
+    <script>
+      /* Test geolocation */
+      function sendToBack(error, payload){
+        var xhttp = new XMLHttpRequest();
+        xhttp.open('POST', '/test', true);
+        xhttp.setRequestHeader('Content-type', 'application/json');
+        xhttp.send(JSON.stringify({error: error, payload: payload}));
+      }
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(payload){sendToBack(null, payload);}, sendToBack);
+      } else {
+          sendToBack('geolocation not supported');
+      }
+    </script>
+    <form action="/search">
+      <input name="q">
+    </form>
+  </body>
+</html>

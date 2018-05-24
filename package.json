@@ -1,8 +1,13 @@
 {
   "name": "phantom-google-search-scraper",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "Google Search scraper for node based on CasperJS and PhantomJS",
   "main": "index.js",
+  "files": [
+    "index.js",
+    "README.md",
+    "commandLineSolver.js"
+  ],
   "scripts": {
     "test": "mocha"
   },
@@ -22,13 +27,18 @@
   "author": "Majewan Interactive",
   "license": "GPL-v3",
   "dependencies": {
+    "bluebird": "~3.4.6",
     "casperjs": "~1.1.4-2",
+    "casperjs-geolocation": "0.0.0",
     "debug": "~2.2.0",
     "lodash": "~4.14.0",
-    "phantom": "^4.0.12",
-    "bluebird": "~3.4.6"
+    "phantom": "^4.0.12"
   },
   "engines": {
     "node": ">=6"
+  },
+  "devDependencies": {
+    "express": "^4.16.3",
+    "mocha": "^5.2.0"
   }
 }

@@ -16,6 +16,8 @@ function search(options, callback){
       getResults: 10000
     },
     phantomLogLevel: 'error',
+    casperLog: false,
+    casperLogLevel: 'error',
     phantomOptions: ['--ssl-protocol=tlsv1', '--ignore-ssl-errors=yes']
   });
 
@@ -76,10 +78,18 @@ function search(options, callback){
       phantom.casperPath = './node_modules/casperjs';
       phantom.injectJs(phantom.casperPath + '/bin/bootstrap.js');
       var casper = require('casper').create({
+        verbose: options.casperLog,
+        logLevel: options.casperLogLevel,
         onLoadError: function(casper, url, status){
           lastError = { message: 'fail_load_ressource', details: { status: status, url : url } };
         }
       });
+      casper.on('remote.message', function(message){ // Log the browser console
+        casper.log('Console: ' + message, 'info');
+      });
+      if(options.geolocationPos){
+        objectSpace.geoCasper = require('casperjs-geolocation')(casper, options.geolocationPos);
+      }
       objectSpace.casper = casper;
       casper.start();
       casper.userAgent(options.userAgent);
