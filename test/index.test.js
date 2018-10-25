@@ -12,7 +12,7 @@ describe('GoogleSearchScraper', function() {
         if(err){
           return done(err);
         }
-        debug(result);
+        debug('%O', result);
         assert.notEqual(result.urls.length, 0, 'Request site:nodejs.org can\'t have 0 results.');
         if(result.urls.length < 100){
           assert.fail(result.urls.length, 100, 'Request site:nodejs.org can\'t have less than 100 results.');
@@ -24,6 +24,7 @@ describe('GoogleSearchScraper', function() {
     it('With 20 limit results', function(){
       this.timeout(30000);
       return GoogleSearchScraper.search({ query : 'site:wikipedia.fr', limit: 20, phantomLogLevel: 'info' }).then(result => {
+        debug('%O', result);
         assert.strictEqual(result.urls.length, 20, 'Must be equal to 20 results.');
       });
     });

@@ -152,14 +152,16 @@ function search(options, callback){
               return e.getAttribute('href');
           });
         });
-        if(this.exists('#RVQdVd')){
+        if(this.exists('#RVQdVdi,.srg')){
           links = this.evaluate(function getLinks(sharedContext) {
-            var links = document.querySelectorAll( ((sharedContext.pageCount === 0) ? '#ires' : ('#arc-srp' + sharedContext.pageCount*10)) + ' a.C8nzq' );
+            var initialNode = ((sharedContext.pageCount === 0) ? '#ires' : ('#arc-srp' + sharedContext.pageCount*10));
+            var links = document.querySelectorAll( initialNode + ' a.C8nzq' + ',' + '#ires .r > a:first-child' );
             return Array.prototype.map.call(links, function(e) {
               return e.getAttribute('href');
             });
           }, sharedContext);
         }
+        console.log('Found results on page', links.length, sharedContext.pageCount);
         sharedContext.resultsCount += links.length;
         sharedContext.pageCount++;
         output = { html: (options.keepPages) ? this.getHTML() : null, urls: links };
